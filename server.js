@@ -108,3 +108,4 @@ app.listen(PORT, () => {
   console.log(`✅ Server draait op http://localhost:${PORT}`);
   console.log(`   API endpoint: http://localhost:${PORT}/api/chat`);
 });
+module.exports = app;
