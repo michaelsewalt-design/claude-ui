@@ -986,6 +986,65 @@ body {
 }
 .error-message svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
 
+/* ========= PER-BERICHT DOWNLOAD ========= */
+.msg-download-wrap {
+  position: relative;
+  margin-top: 8px;
+  display: inline-block;
+}
+
+.msg-download-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: var(--trans);
+  letter-spacing: 0.04em;
+}
+.msg-download-toggle svg { width: 12px; height: 12px; }
+.msg-download-toggle .chevron-sm { width: 10px; height: 10px; transition: transform 0.15s; }
+.msg-download-toggle:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.msg-download-toggle.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.msg-download-toggle.active .chevron-sm { transform: rotate(180deg); }
+
+.msg-download-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: var(--bg-4);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius);
+  min-width: 180px;
+  overflow: hidden;
+  z-index: 150;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: fadeSlideIn 0.15s ease;
+}
+
+.msg-dl-opt {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.msg-dl-opt:last-child { border-bottom: none; }
+.msg-dl-opt:hover { background: var(--bg-5); color: var(--text-1); }
+
 /* ========= ANIMATIONS ========= */
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -1042,3 +1101,4 @@ body {
 
 /* ========= SELECTION ========= */
 ::selection { background: var(--accent-glow); color: var(--text-1); }
+
