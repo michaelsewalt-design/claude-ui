@@ -5,19 +5,31 @@
 
 const MODELS = [
   {
-    id: 'claude-opus-4-8',        // meest recente Opus
+    id: 'claude-opus-4-8',
     name: 'Claude Opus 4.8',
-    ...
+    tag: 'flagship',
+    tagLabel: 'Flagship',
+    description: 'Meest capabele model. Uitstekend voor complexe analyses, lange documenten en creatief schrijven. Maximale nauwkeurigheid en diepgang.',
+    contextWindow: '200K tokens',
+    speed: 'Gemiddeld'
   },
   {
-    id: 'claude-sonnet-4-6',      // ← dit klopt al ✅
+    id: 'claude-sonnet-4-6',
     name: 'Claude Sonnet 4.6',
-    ...
+    tag: 'efficient',
+    tagLabel: 'Balanced',
+    description: 'Optimale balans tussen intelligentie en snelheid. Geschikt voor de meeste dagelijkse taken: rapportage, samenvatting en tekstverwerking.',
+    contextWindow: '200K tokens',
+    speed: 'Snel'
   },
   {
-    id: 'claude-haiku-4-5',          // kortere versie werkt ook
+    id: 'claude-haiku-4-5',
     name: 'Claude Haiku 4.5',
-    ...
+    tag: 'fast',
+    tagLabel: 'Snel',
+    description: 'Lichtste en snelste model. Ideaal voor korte vragen, snelle bewerkingen en interactieve gesprekken waar reactiesnelheid prioriteit heeft.',
+    contextWindow: '200K tokens',
+    speed: 'Zeer snel'
   }
 ];
 
