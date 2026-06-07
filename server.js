@@ -37,7 +37,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type']
 }));
 
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Statische bestanden (je HTML/CSS/JS)
 // app.use(express.static('public')); // Zet je claude-ui bestanden in /public
