@@ -60,7 +60,7 @@ const OUTPUT_FORMATS = [
     id: 'doc',
     label: 'Word (.docx)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
-    instruction: 'Structureer je antwoord als een professioneel Word-document met duidelijke koppen (markeer ze als KOPTEKST 1:, KOPTEKST 2:), alinea\'s, opsommingen en een logische documentstructuur. Gebruik [ENTER] voor alinea-einden.',
+    instruction: 'Structureer je antwoord als een professioneel Word-document met duidelijke koppen, alinea\'s en een logische documentstructuur.',
     extension: '.docx'
   },
   {
@@ -69,6 +69,13 @@ const OUTPUT_FORMATS = [
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15v-4h6v4"/><path d="M9 11h6"/></svg>`,
     instruction: 'Geef een duidelijk gestructureerd antwoord met koppen, paragrafen en opsommingen geschikt voor een PDF-document. Gebruik Markdown voor opmaak.',
     extension: '.pdf'
+  },
+  {
+    id: 'excel',
+    label: 'Excel',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/><path d="M6 12l3 3-3 3M15 12h3"/></svg>`,
+    instruction: 'Geef je antwoord ALS TABEL-DATA die geschikt is voor Excel. Gebruik een duidelijke structuur met kolomkoppen in de eerste rij. Geef de data terug als JSON-array waarbij het eerste element de kolomkoppen bevat en de volgende elementen de rijen zijn. Geef ALLEEN de JSON-array terug, geen uitleg of Markdown. Voorbeeld: [["Naam","Waarde","Categorie"],["Item 1","100","A"],["Item 2","200","B"]]',
+    extension: '.xlsx'
   },
   {
     id: 'json',
