@@ -1,7 +1,7 @@
 /**
- * UI.JS — v4
+ * UI.JS — v5
  * DOM rendering, componenten en visuele interacties.
- * Nieuw: Excel toegevoegd aan download-menu en export modal
+ * Nieuw: PowerPoint toegevoegd aan download-menu en export modal
  */
 
 const UI = (() => {
@@ -11,7 +11,7 @@ const UI = (() => {
     let html = text
       .replace(/```([\w]*)\n([\s\S]*?)```/g, (_, lang, code) => {
         const escaped = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return `<pre><code class="lang-${lang}">${escaped}</code></pre>`;
+        return '<pre><code class="lang-' + lang + '">' + escaped + '</code></pre>';
       })
       .replace(/`([^`\n]+)`/g, '<code>$1</code>')
       .replace(/^#{6}\s(.+)$/gm, '<h6>$1</h6>')
@@ -26,17 +26,16 @@ const UI = (() => {
       .replace(/^>\s(.+)$/gm,       '<blockquote>$1</blockquote>')
       .replace(/^---+$/gm,          '<hr>')
       .replace(/^\s*[-*+]\s(.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+      .replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>')
       .replace(/^\d+\.\s(.+)$/gm,   '<li>$1</li>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
       .replace(/\n\n+/g, '\n\n');
 
-    const parts = html.split('\n\n');
-    return parts.map(part => {
+    return text.split('\n\n').map(part => {
       const trimmed = part.trim();
       if (!trimmed) return '';
       if (/^<(h[1-6]|ul|ol|pre|blockquote|hr|table|tr)/.test(trimmed)) return trimmed;
-      return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+      return '<p>' + trimmed.replace(/\n/g, '<br>') + '</p>';
     }).filter(Boolean).join('\n');
   }
 
@@ -44,14 +43,15 @@ const UI = (() => {
   function renderModels(currentModelId, onSelect) {
     const dropdown = document.getElementById('modelDropdown');
     if (!dropdown) return;
-    dropdown.innerHTML = MODELS.map(m => `
-      <div class="model-option ${m.id === currentModelId ? 'active' : ''}" data-id="${m.id}">
-        <div class="model-option-head">
-          <span class="model-option-name">${m.name}</span>
-          <span class="model-option-tag tag--${m.tag}">${m.tagLabel}</span>
-        </div>
-        <div class="model-option-desc">${m.description}</div>
-      </div>`).join('');
+    dropdown.innerHTML = MODELS.map(m =>
+      '<div class="model-option ' + (m.id === currentModelId ? 'active' : '') + '" data-id="' + m.id + '">' +
+        '<div class="model-option-head">' +
+          '<span class="model-option-name">' + m.name + '</span>' +
+          '<span class="model-option-tag tag--' + m.tag + '">' + m.tagLabel + '</span>' +
+        '</div>' +
+        '<div class="model-option-desc">' + m.description + '</div>' +
+      '</div>'
+    ).join('');
     dropdown.querySelectorAll('.model-option').forEach(el => {
       el.addEventListener('click', () => {
         onSelect(el.dataset.id);
@@ -76,11 +76,12 @@ const UI = (() => {
     if (!grid) return;
     const noneCat = OUTPUT_FORMATS.find(f => f.id === 'none');
     const rest    = OUTPUT_FORMATS.filter(f => f.id !== 'none');
-    grid.innerHTML = [noneCat, ...rest].map(f => `
-      <button class="format-btn ${f.id === currentFormatId ? 'active' : ''}" data-id="${f.id}" title="${f.label}">
-        ${f.icon}
-        <span>${f.label}</span>
-      </button>`).join('');
+    grid.innerHTML = [noneCat, ...rest].map(f =>
+      '<button class="format-btn ' + (f.id === currentFormatId ? 'active' : '') + '" data-id="' + f.id + '" title="' + f.label + '">' +
+        f.icon +
+        '<span>' + f.label + '</span>' +
+      '</button>'
+    ).join('');
     grid.querySelectorAll('.format-btn').forEach(el => {
       el.addEventListener('click', () => onSelect(el.dataset.id));
     });
@@ -123,60 +124,70 @@ const UI = (() => {
       ? '<span class="format-tag">' + format.label + '</span>'
       : '';
 
-    const downloadMenu = role === 'assistant' ? `
-      <div class="msg-download-wrap">
-        <button class="msg-download-toggle" title="Downloaden als...">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Downloaden
-          <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-        <div class="msg-download-menu" style="display:none">
-          <button class="msg-dl-opt" data-fmt="docx">Word (.docx)</button>
-          <button class="msg-dl-opt" data-fmt="excel">Excel (.xlsx)</button>
-          <button class="msg-dl-opt" data-fmt="pdf">PDF</button>
-          <button class="msg-dl-opt" data-fmt="html">HTML</button>
-          <button class="msg-dl-opt" data-fmt="markdown">Markdown</button>
-          <button class="msg-dl-opt" data-fmt="txt">Platte tekst</button>
-        </div>
-      </div>` : '';
+    // Download-menu opties — inclusief PowerPoint
+    const downloadMenu = role === 'assistant'
+      ? '<div class="msg-download-wrap">' +
+          '<button class="msg-download-toggle" title="Downloaden als...">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+              '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>' +
+              '<polyline points="7 10 12 15 17 10"/>' +
+              '<line x1="12" y1="15" x2="12" y2="3"/>' +
+            '</svg>' +
+            'Downloaden' +
+            '<svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+              '<polyline points="6 9 12 15 18 9"/>' +
+            '</svg>' +
+          '</button>' +
+          '<div class="msg-download-menu" style="display:none">' +
+            '<button class="msg-dl-opt" data-fmt="docx">Word (.docx)</button>' +
+            '<button class="msg-dl-opt" data-fmt="powerpoint">PowerPoint (.pptx)</button>' +
+            '<button class="msg-dl-opt" data-fmt="excel">Excel (.xlsx)</button>' +
+            '<button class="msg-dl-opt" data-fmt="pdf">PDF</button>' +
+            '<button class="msg-dl-opt" data-fmt="html">HTML</button>' +
+            '<button class="msg-dl-opt" data-fmt="markdown">Markdown</button>' +
+            '<button class="msg-dl-opt" data-fmt="txt">Platte tekst</button>' +
+          '</div>' +
+        '</div>'
+      : '';
 
-    const copyBtnHtml = role === 'assistant' ? `
-      <button class="copy-btn" data-text="${escapeAttr(contentText)}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="9" y="9" width="13" height="13" rx="2"/>
-          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-        </svg>
-        Kopiëren
-      </button>` : '';
+    const copyBtnHtml = role === 'assistant'
+      ? '<button class="copy-btn" data-text="' + escapeAttr(contentText) + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+            '<rect x="9" y="9" width="13" height="13" rx="2"/>' +
+            '<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>' +
+          '</svg>' +
+          'Kopi\u00ebren' +
+        '</button>'
+      : '';
 
-    div.innerHTML = `
-      <div class="message-avatar">${avatarLabel}</div>
-      <div class="message-content">
-        <div class="message-role">${roleLabel}</div>
-        <div class="message-text">${htmlContent}</div>
-        <div class="message-meta">
-          <span class="message-time">${time}</span>
-          ${formatTag}
-          ${copyBtnHtml}
-        </div>
-        ${downloadMenu}
-      </div>`;
+    div.innerHTML =
+      '<div class="message-avatar">' + avatarLabel + '</div>' +
+      '<div class="message-content">' +
+        '<div class="message-role">' + roleLabel + '</div>' +
+        '<div class="message-text">' + htmlContent + '</div>' +
+        '<div class="message-meta">' +
+          '<span class="message-time">' + time + '</span>' +
+          formatTag +
+          copyBtnHtml +
+        '</div>' +
+        downloadMenu +
+      '</div>';
 
     // Kopieer-knop
     const copyBtn = div.querySelector('.copy-btn');
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(copyBtn.dataset.text).then(() => {
-          copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Gekopieerd';
+          copyBtn.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>' +
+            'Gekopieerd';
           copyBtn.classList.add('copied');
           setTimeout(() => {
-            copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Kopi\u00ebren';
+            copyBtn.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+              '<rect x="9" y="9" width="13" height="13" rx="2"/>' +
+              '<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+              'Kopi\u00ebren';
             copyBtn.classList.remove('copied');
           }, 2000);
         });
@@ -187,7 +198,7 @@ const UI = (() => {
     const dlToggle = div.querySelector('.msg-download-toggle');
     const dlMenu   = div.querySelector('.msg-download-menu');
     if (dlToggle && dlMenu) {
-      dlToggle.addEventListener('click', (e) => {
+      dlToggle.addEventListener('click', e => {
         e.stopPropagation();
         const isOpen = dlMenu.style.display !== 'none';
         document.querySelectorAll('.msg-download-menu').forEach(m => { m.style.display = 'none'; });
@@ -199,12 +210,13 @@ const UI = (() => {
       });
 
       const dlLabels = {
-        docx:     'Word (.docx)',
-        excel:    'Excel (.xlsx)',
-        pdf:      'PDF',
-        html:     'HTML',
-        markdown: 'Markdown',
-        txt:      'Platte tekst'
+        docx:        'Word (.docx)',
+        powerpoint:  'PowerPoint (.pptx)',
+        excel:       'Excel (.xlsx)',
+        pdf:         'PDF',
+        html:        'HTML',
+        markdown:    'Markdown',
+        txt:         'Platte tekst'
       };
 
       dlMenu.querySelectorAll('.msg-dl-opt').forEach(btn => {
@@ -239,14 +251,10 @@ const UI = (() => {
     const el = document.createElement('div');
     el.className = 'typing-indicator';
     el.id = 'typingIndicator';
-    el.innerHTML = `
-      <div class="message-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">\u25C6</div>
-      <div class="typing-dots">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-      </div>
-      <span class="typing-label">Claude denkt na\u2026</span>`;
+    el.innerHTML =
+      '<div class="message-avatar" style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">\u25C6</div>' +
+      '<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' +
+      '<span class="typing-label">Claude denkt na\u2026</span>';
     messagesEl.appendChild(el);
     scrollToBottom();
     return el;
@@ -263,7 +271,10 @@ const UI = (() => {
     chatArea.querySelectorAll('.error-message').forEach(e => e.remove());
     const el = document.createElement('div');
     el.className = 'error-message';
-    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${text}</span>`;
+    el.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+      '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>' +
+      '<line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>' + text + '</span>';
     chatArea.appendChild(el);
     scrollToBottom();
   }
@@ -284,15 +295,16 @@ const UI = (() => {
   function renderFileList(files, onRemove) {
     const list = document.getElementById('fileList');
     if (!list) return;
-    list.innerHTML = files.map((f, i) => `
-      <div class="file-item" data-index="${i}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span class="file-item-name" title="${f.name}">${f.name}</span>
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-left:auto;flex-shrink:0;">${formatBytes(f.size)}</span>
-        <button class="file-remove" data-index="${i}" title="Verwijderen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>`).join('');
+    list.innerHTML = files.map((f, i) =>
+      '<div class="file-item" data-index="' + i + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+        '<span class="file-item-name" title="' + f.name + '">' + f.name + '</span>' +
+        '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-left:auto;flex-shrink:0;">' + formatBytes(f.size) + '</span>' +
+        '<button class="file-remove" data-index="' + i + '" title="Verwijderen">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>'
+    ).join('');
     list.querySelectorAll('.file-remove').forEach(btn => {
       btn.addEventListener('click', () => onRemove(parseInt(btn.dataset.index)));
     });
@@ -302,14 +314,15 @@ const UI = (() => {
     const container = document.getElementById('inputAttachments');
     if (!container) return;
     if (files.length === 0) { container.innerHTML = ''; return; }
-    container.innerHTML = files.map((f, i) => `
-      <div class="attach-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-        <span>${f.name}</span>
-        <button class="attach-remove" data-index="${i}" title="Verwijderen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>`).join('');
+    container.innerHTML = files.map((f, i) =>
+      '<div class="attach-chip">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>' +
+        '<span>' + f.name + '</span>' +
+        '<button class="attach-remove" data-index="' + i + '" title="Verwijderen">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>'
+    ).join('');
     container.querySelectorAll('.attach-remove').forEach(btn => {
       btn.addEventListener('click', () => onRemove(parseInt(btn.dataset.index)));
     });
@@ -329,21 +342,23 @@ const UI = (() => {
     if (!container) return;
 
     const formats = [
-      { id: 'docx',     label: 'Word',     ext: '.docx' },
-      { id: 'excel',    label: 'Excel',    ext: '.xlsx' },
-      { id: 'pdf',      label: 'PDF',      ext: '.pdf'  },
-      { id: 'html',     label: 'HTML',     ext: '.html' },
-      { id: 'markdown', label: 'Markdown', ext: '.md'   },
-      { id: 'txt',      label: 'Tekst',    ext: '.txt'  },
-      { id: 'json',     label: 'JSON',     ext: '.json' },
-      { id: 'csv',      label: 'CSV',      ext: '.csv'  }
+      { id: 'docx',        label: 'Word',        ext: '.docx' },
+      { id: 'powerpoint',  label: 'PowerPoint',  ext: '.pptx' },
+      { id: 'excel',       label: 'Excel',       ext: '.xlsx' },
+      { id: 'pdf',         label: 'PDF',         ext: '.pdf'  },
+      { id: 'html',        label: 'HTML',        ext: '.html' },
+      { id: 'markdown',    label: 'Markdown',    ext: '.md'   },
+      { id: 'txt',         label: 'Tekst',       ext: '.txt'  },
+      { id: 'json',        label: 'JSON',        ext: '.json' },
+      { id: 'csv',         label: 'CSV',         ext: '.csv'  }
     ];
 
-    container.innerHTML = formats.map(f => `
-      <button class="export-format-btn ${f.id === (currentFormat || 'docx') ? 'active' : ''}" data-id="${f.id}">
-        <span class="ext">${f.ext}</span>
-        <span>${f.label}</span>
-      </button>`).join('');
+    container.innerHTML = formats.map(f =>
+      '<button class="export-format-btn ' + (f.id === (currentFormat || 'docx') ? 'active' : '') + '" data-id="' + f.id + '">' +
+        '<span class="ext">' + f.ext + '</span>' +
+        '<span>' + f.label + '</span>' +
+      '</button>'
+    ).join('');
 
     let selected = currentFormat || 'docx';
     container.dataset.selected = selected;
