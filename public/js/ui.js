@@ -166,6 +166,7 @@ const UI = (() => {
         </button>
         <div class="msg-download-menu" style="display:none">
           <button class="msg-dl-opt" data-fmt="docx">📄 Word (.docx)</button>
+          <button class="msg-dl-opt" data-fmt="pdf">📊 Excel (.xlsx)</button>
           <button class="msg-dl-opt" data-fmt="pdf">📑 PDF</button>
           <button class="msg-dl-opt" data-fmt="html">🌐 HTML</button>
           <button class="msg-dl-opt" data-fmt="markdown">✏️ Markdown</button>
@@ -237,7 +238,8 @@ const UI = (() => {
           }
           // Reset label na korte vertraging
           setTimeout(() => {
-            const labels = { docx: '📄 Word (.docx)', pdf: '📑 PDF', html: '🌐 HTML', markdown: '✏️ Markdown', txt: '📝 Platte tekst' };
+            const labels = { docx: '📄 Word (.docx)', pdf: '📊 Excel (.xlsx)</button>
+          <button class="msg-dl-opt" data-fmt="pdf">📑 PDF', html: '🌐 HTML', markdown: '✏️ Markdown', txt: '📝 Platte tekst' };
             btn.textContent = labels[fmt] || fmt;
           }, 1500);
         });
@@ -360,6 +362,7 @@ const UI = (() => {
       { id: 'html',     label: 'HTML',     ext: '.html', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>` },
       { id: 'markdown', label: 'Markdown', ext: '.md',   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2h-7"/></svg>` },
       { id: 'txt',      label: 'Tekst',    ext: '.txt',  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/></svg>` },
+      { id: 'excel', label: 'Excel', ext: '.xlsx', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>` },
       { id: 'json',     label: 'JSON',     ext: '.json', icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/></svg>` }
     ];
 
