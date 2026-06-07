@@ -1,48 +1,93 @@
 /**
- * SERVER.JS — met wachtwoordbeveiliging
+ * SERVER.JS — v3
  * =======================================
- * Beveiliging via sessie-cookie na inloggen.
- * Niemand kan de app gebruiken zonder het juiste wachtwoord.
+ * - Wachtwoordbeveiliging via sessie-cookie
+ * - Brute force bescherming: na 10 foute pogingen 15 minuten geblokkeerd
+ * - Rate limiting op API calls
  *
  * Installatie:
  *   npm install express cors dotenv cookie-parser
  *
- * .env / Vercel Environment Variables:
+ * Vercel Environment Variables:
  *   ANTHROPIC_API_KEY = sk-ant-...
- *   LOGIN_PASSWORD    = kies-een-sterk-wachtwoord
- *   SESSION_SECRET    = willekeurige-lange-string
- *   PORT              = 3000
+ *   LOGIN_PASSWORD    = jouw-wachtwoord
+ *   SESSION_SECRET    = lange-willekeurige-string
+ *   NODE_ENV          = production
  */
 
 require('dotenv').config();
-const express      = require('express');
-const cors         = require('cors');
-const cookieParser = require('cookie-parser');
-const crypto       = require('crypto');
-const path         = require('path');
+const express       = require('express');
+const cors          = require('cors');
+const cookieParser  = require('cookie-parser');
+const crypto        = require('crypto');
+const path          = require('path');
 
-const app           = express();
-const PORT          = process.env.PORT          || 3000;
-const API_KEY       = process.env.ANTHROPIC_API_KEY;
-const PASSWORD      = process.env.LOGIN_PASSWORD;
-const SESSION_SECRET = process.env.SESSION_SECRET || 'verander-dit-naar-iets-geheims';
+const app            = express();
+const PORT           = process.env.PORT           || 3000;
+const API_KEY        = process.env.ANTHROPIC_API_KEY;
+const PASSWORD       = process.env.LOGIN_PASSWORD;
+const SESSION_SECRET = process.env.SESSION_SECRET  || 'verander-dit-naar-iets-geheims';
 
 if (!API_KEY)  { console.error('ANTHROPIC_API_KEY niet ingesteld'); process.exit(1); }
 if (!PASSWORD) { console.error('LOGIN_PASSWORD niet ingesteld');     process.exit(1); }
 
-// ─── Token generatie ──────────────────────────────────────────
-// Maak een gesigneerde token op basis van het wachtwoord + secret
+// ─── Sessie token ─────────────────────────────────────────────
 function generateToken() {
   return crypto
     .createHmac('sha256', SESSION_SECRET)
     .update(PASSWORD)
     .digest('hex');
 }
-
 const VALID_TOKEN = generateToken();
 
+// ─── Brute force bescherming ──────────────────────────────────
+const MAX_ATTEMPTS   = 10;           // max foute pogingen
+const BLOCK_DURATION = 15 * 60 * 1000; // 15 minuten in ms
+
+// Map: IP → { attempts: number, blockedUntil: number|null, lastAttempt: number }
+const loginAttempts = new Map();
+
+function getLoginRecord(ip) {
+  if (!loginAttempts.has(ip)) {
+    loginAttempts.set(ip, { attempts: 0, blockedUntil: null });
+  }
+  return loginAttempts.get(ip);
+}
+
+function isBlocked(ip) {
+  const record = getLoginRecord(ip);
+  if (record.blockedUntil && Date.now() < record.blockedUntil) {
+    return true; // nog steeds geblokkeerd
+  }
+  if (record.blockedUntil && Date.now() >= record.blockedUntil) {
+    // Blokkade verlopen — reset
+    record.attempts    = 0;
+    record.blockedUntil = null;
+  }
+  return false;
+}
+
+function recordFailedAttempt(ip) {
+  const record = getLoginRecord(ip);
+  record.attempts++;
+  if (record.attempts >= MAX_ATTEMPTS) {
+    record.blockedUntil = Date.now() + BLOCK_DURATION;
+    console.warn('Brute force geblokkeerd: ' + ip + ' voor 15 minuten (' + record.attempts + ' pogingen)');
+  }
+}
+
+function resetAttempts(ip) {
+  loginAttempts.set(ip, { attempts: 0, blockedUntil: null });
+}
+
+function minutesRemaining(ip) {
+  const record = getLoginRecord(ip);
+  if (!record.blockedUntil) return 0;
+  return Math.ceil((record.blockedUntil - Date.now()) / 60000);
+}
+
 // ─── Middleware ───────────────────────────────────────────────
-app.use(cors({ origin: false })); // geen cross-origin voor beveiligde app
+app.use(cors({ origin: false }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
@@ -50,18 +95,28 @@ app.use(cookieParser());
 // ─── Auth middleware ──────────────────────────────────────────
 function requireAuth(req, res, next) {
   const token = req.cookies && req.cookies['claude_session'];
-  if (token && token === VALID_TOKEN) {
-    return next(); // ingelogd
-  }
-  // Niet ingelogd → stuur naar loginpagina
+  if (token && token === VALID_TOKEN) return next();
   res.redirect('/login');
 }
 
 // ─── Login pagina ─────────────────────────────────────────────
 app.get('/login', (req, res) => {
-  // Al ingelogd? Stuur door naar de app
   const token = req.cookies && req.cookies['claude_session'];
   if (token === VALID_TOKEN) return res.redirect('/');
+
+  const ip      = req.ip || req.connection.remoteAddress;
+  const blocked = isBlocked(ip);
+  const minutes = minutesRemaining(ip);
+  const record  = getLoginRecord(ip);
+  const attempts = record.attempts;
+
+  let statusMsg = '';
+  if (blocked) {
+    statusMsg = '<div class="error">Te veel foute pogingen. Probeer het over ' + minutes + ' minuten opnieuw.</div>';
+  } else if (req.query.error) {
+    const remaining = MAX_ATTEMPTS - attempts;
+    statusMsg = '<div class="error">Onjuist wachtwoord. Nog ' + remaining + ' poging' + (remaining === 1 ? '' : 'en') + ' voor blokkade.</div>';
+  }
 
   res.send(`<!DOCTYPE html>
 <html lang="nl">
@@ -99,20 +154,8 @@ app.get('/login', (req, res) => {
     }
     .logo-mark { color: #e8c547; font-size: 24px; }
     .logo-text { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; }
-    h1 {
-      font-size: 18px;
-      font-weight: 600;
-      text-align: center;
-      margin-bottom: 8px;
-      color: #f0efee;
-    }
-    p {
-      font-size: 13px;
-      color: #9b9aa0;
-      text-align: center;
-      margin-bottom: 28px;
-      line-height: 1.5;
-    }
+    h1 { font-size: 18px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+    p { font-size: 13px; color: #9b9aa0; text-align: center; margin-bottom: 28px; line-height: 1.5; }
     label {
       display: block;
       font-size: 11px;
@@ -136,6 +179,7 @@ app.get('/login', (req, res) => {
       letter-spacing: 0.1em;
     }
     input[type="password"]:focus { border-color: #e8c547; }
+    input:disabled { opacity: 0.4; cursor: not-allowed; }
     button {
       width: 100%;
       background: #e8c547;
@@ -147,9 +191,9 @@ app.get('/login', (req, res) => {
       font-weight: 700;
       cursor: pointer;
       transition: background 0.15s;
-      letter-spacing: 0.02em;
     }
-    button:hover { background: #f0d060; }
+    button:hover:not(:disabled) { background: #f0d060; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
     .error {
       background: rgba(224,92,92,0.12);
       border: 1px solid rgba(224,92,92,0.25);
@@ -159,6 +203,19 @@ app.get('/login', (req, res) => {
       color: #e07070;
       margin-bottom: 16px;
       text-align: center;
+      line-height: 1.5;
+    }
+    .attempts-bar {
+      height: 3px;
+      background: #1e1e23;
+      border-radius: 99px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .attempts-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.3s, background 0.3s;
     }
   </style>
 </head>
@@ -168,13 +225,22 @@ app.get('/login', (req, res) => {
       <span class="logo-mark">&#9670;</span>
       <span class="logo-text">Claude AI</span>
     </div>
-    <h1>Privé toegang</h1>
+    <h1>Prive toegang</h1>
     <p>Voer het wachtwoord in om toegang te krijgen.</p>
-    ${req.query.error ? '<div class="error">Onjuist wachtwoord. Probeer opnieuw.</div>' : ''}
+    ${statusMsg}
+    ${!blocked && attempts > 0 ? `
+    <div class="attempts-bar">
+      <div class="attempts-fill" style="width:${Math.round((attempts/MAX_ATTEMPTS)*100)}%;background:${attempts >= 7 ? '#e05c5c' : attempts >= 4 ? '#f97316' : '#e8c547'};"></div>
+    </div>` : ''}
     <form method="POST" action="/login">
       <label for="password">Wachtwoord</label>
-      <input type="password" id="password" name="password" autocomplete="current-password" autofocus placeholder="••••••••" />
-      <button type="submit">Inloggen</button>
+      <input type="password" id="password" name="password"
+        autocomplete="current-password"
+        ${blocked ? 'disabled' : 'autofocus'}
+        placeholder="••••••••" />
+      <button type="submit" ${blocked ? 'disabled' : ''}>
+        ${blocked ? 'Geblokkeerd (' + minutes + ' min)' : 'Inloggen'}
+      </button>
     </form>
   </div>
 </body>
@@ -183,19 +249,26 @@ app.get('/login', (req, res) => {
 
 // ─── Login verwerken ──────────────────────────────────────────
 app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress;
+
+  // Geblokkeerd?
+  if (isBlocked(ip)) {
+    return res.redirect('/login');
+  }
+
   const { password } = req.body;
 
   if (password === PASSWORD) {
-    // Correct wachtwoord → sla sessie-cookie op (30 dagen)
+    resetAttempts(ip);
     res.cookie('claude_session', VALID_TOKEN, {
-      httpOnly: true,                        // niet toegankelijk via JS
-      secure:   process.env.NODE_ENV === 'production', // alleen HTTPS in productie
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge:   30 * 24 * 60 * 60 * 1000    // 30 dagen in ms
+      maxAge:   30 * 24 * 60 * 60 * 1000 // 30 dagen
     });
     res.redirect('/');
   } else {
-    // Fout wachtwoord
+    recordFailedAttempt(ip);
     res.redirect('/login?error=1');
   }
 });
@@ -207,27 +280,26 @@ app.get('/logout', (req, res) => {
 });
 
 // ─── Statische bestanden (beveiligd) ─────────────────────────
-// Alleen toegankelijk na inloggen
 app.use(requireAuth, express.static(path.join(__dirname, 'public')));
 
-// ─── Rate limiting ────────────────────────────────────────────
-const requestLog = new Map();
-const RATE_LIMIT  = 60; // verzoeken per uur
+// ─── Rate limiting API ────────────────────────────────────────
+const apiRequestLog = new Map();
+const API_RATE_LIMIT = 60;
 
-function checkRateLimit(ip) {
+function checkApiRateLimit(ip) {
   const now         = Date.now();
   const windowStart = now - 3600000;
-  const requests    = (requestLog.get(ip) || []).filter(t => t > windowStart);
+  const requests    = (apiRequestLog.get(ip) || []).filter(t => t > windowStart);
   requests.push(now);
-  requestLog.set(ip, requests);
-  return requests.length <= RATE_LIMIT;
+  apiRequestLog.set(ip, requests);
+  return requests.length <= API_RATE_LIMIT;
 }
 
 // ─── API proxy (beveiligd) ────────────────────────────────────
 app.post('/api/chat', requireAuth, async (req, res) => {
   const ip = req.ip || req.connection.remoteAddress;
 
-  if (!checkRateLimit(ip)) {
+  if (!checkApiRateLimit(ip)) {
     return res.status(429).json({ error: { message: 'Te veel verzoeken. Probeer het later opnieuw.' } });
   }
 
@@ -266,7 +338,7 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 // ─── Health check (openbaar) ─────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// ─── Catch-all: stuur niet-gevonden routes naar login ─────────
+// ─── Catch-all ────────────────────────────────────────────────
 app.use((req, res) => res.redirect('/login'));
 
 app.listen(PORT, () => {
