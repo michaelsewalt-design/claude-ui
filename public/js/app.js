@@ -251,7 +251,10 @@
     }
 
     // Render gebruikersbericht
-    const displayText = text || `[${state.uploads.map(f => f.name).join(', ')}]`;
+    const fileNames = state.uploads.map(f => f.name).join(', ');
+    const displayText = fileNames
+       ? (text ? `📎 ${fileNames}\n\n${text}` : `📎 ${fileNames}`)
+       : text;
     UI.renderMessage('user', displayText, null, timestamp);
 
     // Voeg toe aan API-geschiedenis
