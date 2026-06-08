@@ -337,7 +337,7 @@ body {
 .stat-key { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); letter-spacing: 0.06em; }
 
 /* ========= SIDEBAR ACTION BUTTONS ========= */
-.sidebar-actions { display: flex; flex-direction: column; gap: 7px; }
+.sidebar-actions { display: none; } /* Knoppen zitten nu in de input bar */
 
 .btn {
   display: inline-flex;
@@ -380,6 +380,7 @@ body {
   overflow: hidden;
   background: var(--bg);
   transition: margin-left 0.25s cubic-bezier(0.4,0,0.2,1);
+  /* Input area is sticky, dus geen extra padding nodig */
 }
 
 /* ========= TOPBAR ========= */
@@ -440,6 +441,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 0;
+  padding-bottom: 8px;
   scroll-behavior: smooth;
   position: relative;
 }
@@ -736,12 +738,19 @@ body {
 /* ========= INPUT AREA ========= */
 .input-area {
   flex-shrink: 0;
-  padding: 12px 20px 16px;
+  padding: 10px 16px 12px;
   border-top: 1px solid var(--border);
   background: var(--bg);
+  width: 100%;
+  /* Sticky onderaan — altijd zichtbaar op mobiel */
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+}
+
+.input-area-inner {
   max-width: 800px;
   margin: 0 auto;
-  width: 100%;
 }
 
 .input-attachments {
@@ -749,6 +758,9 @@ body {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 8px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .attach-chip {
@@ -774,8 +786,33 @@ body {
 
 .input-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-end;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ── Actieknoppen naast invoerveld ── */
+.input-action-btn {
+  width: 42px; height: 42px; flex-shrink: 0;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--trans);
+}
+.input-action-btn svg { width: 15px; height: 15px; }
+.input-action-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.input-action-btn--danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-dim);
 }
 
 .textarea-wrapper {
@@ -828,6 +865,9 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-top: 6px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .input-hint {
   font-family: var(--font-mono);
