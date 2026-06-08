@@ -1,6 +1,7 @@
 /**
- * APP.JS
- * Hoofd applicatielogica — staat, interacties en eventementen
+ * APP.JS — v2
+ * Hoofd applicatielogica — staat, interacties en evenementen.
+ * Nieuw: continuation indicator via UI.showContinuing() / UI.hideContinuing()
  */
 
 (function () {
@@ -8,97 +9,81 @@
 
   // ─── Applicatiestatus ─────────────────────────────────────────
   const state = {
-    model: CONFIG.DEFAULT_MODEL,
-    format: 'none',
-    messages: [],          // API history: [{role, content, timestamp}]
-    uploads: [],           // File objects voor upload
-    isLoading: false,
+    model:          CONFIG.DEFAULT_MODEL,
+    format:         'none',
+    messages:       [],
+    uploads:        [],
+    isLoading:      false,
     sidebarVisible: true
   };
 
   // ─── DOM elementen ────────────────────────────────────────────
   const els = {
-    sidebar: document.getElementById('sidebar'),
-    sidebarToggle: document.getElementById('sidebarToggle'),
-    topbarMenu: document.getElementById('topbarMenu'),
+    sidebar:          document.getElementById('sidebar'),
+    sidebarToggle:    document.getElementById('sidebarToggle'),
+    topbarMenu:       document.getElementById('topbarMenu'),
     modelSelectorWrapper: document.getElementById('modelSelectorWrapper'),
-    modelCurrentBtn: document.getElementById('modelCurrentBtn'),
-    userInput: document.getElementById('userInput'),
-    sendBtn: document.getElementById('sendBtn'),
-    fileInput: document.getElementById('fileInput'),
-    uploadZone: document.getElementById('uploadZone'),
-    exportBtn: document.getElementById('exportBtn'),
-    clearBtn: document.getElementById('clearBtn'),
-    exportModal: document.getElementById('exportModal'),
+    modelCurrentBtn:  document.getElementById('modelCurrentBtn'),
+    userInput:        document.getElementById('userInput'),
+    sendBtn:          document.getElementById('sendBtn'),
+    fileInput:        document.getElementById('fileInput'),
+    uploadZone:       document.getElementById('uploadZone'),
+    exportBtn:        document.getElementById('exportBtn'),
+    clearBtn:         document.getElementById('clearBtn'),
+    exportModal:      document.getElementById('exportModal'),
     exportModalClose: document.getElementById('exportModalClose'),
-    doExportBtn: document.getElementById('doExportBtn'),
+    doExportBtn:      document.getElementById('doExportBtn'),
     clearAfterExport: document.getElementById('clearAfterExport'),
-    clearModal: document.getElementById('clearModal'),
-    clearModalClose: document.getElementById('clearModalClose'),
-    clearCancelBtn: document.getElementById('clearCancelBtn'),
-    clearConfirmBtn: document.getElementById('clearConfirmBtn'),
-    exportFormats: document.getElementById('exportFormats'),
-    welcomeChips: document.querySelectorAll('.chip')
+    clearModal:       document.getElementById('clearModal'),
+    clearModalClose:  document.getElementById('clearModalClose'),
+    clearCancelBtn:   document.getElementById('clearCancelBtn'),
+    clearConfirmBtn:  document.getElementById('clearConfirmBtn'),
+    exportFormats:    document.getElementById('exportFormats'),
+    welcomeChips:     document.querySelectorAll('.chip')
   };
 
   // ─── Initialisatie ────────────────────────────────────────────
   function init() {
-    // Modellen
     UI.renderModels(state.model, selectModel);
     const currentModel = MODELS.find(m => m.id === state.model) || MODELS[0];
     UI.setCurrentModel(currentModel);
 
-    // Formaten
     UI.renderFormats(state.format, selectFormat);
     const currentFormat = OUTPUT_FORMATS.find(f => f.id === state.format);
     UI.setCurrentFormat(currentFormat);
 
-    // Events
     bindEvents();
-
-    // Textarea auto-resize
     autoResizeTextarea();
-
-    // Stat update
     updateStats();
   }
 
   // ─── Event bindings ───────────────────────────────────────────
   function bindEvents() {
-    // Sidebar toggle
     els.sidebarToggle?.addEventListener('click', toggleSidebar);
     els.topbarMenu?.addEventListener('click', toggleSidebar);
 
-    // Model dropdown toggle
     els.modelCurrentBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       els.modelSelectorWrapper.classList.toggle('open');
     });
 
-    // Sluit dropdown bij klik buiten
     document.addEventListener('click', (e) => {
       if (!els.modelSelectorWrapper?.contains(e.target)) {
         els.modelSelectorWrapper?.classList.remove('open');
       }
     });
 
-    // Verzenden
     els.sendBtn?.addEventListener('click', sendMessage);
     els.userInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
     els.userInput?.addEventListener('input', autoResizeTextarea);
 
-    // Bestanden uploaden
     els.fileInput?.addEventListener('change', handleFileSelect);
     els.uploadZone?.addEventListener('dragover', handleDragOver);
     els.uploadZone?.addEventListener('dragleave', handleDragLeave);
     els.uploadZone?.addEventListener('drop', handleDrop);
 
-    // Export modal
     els.exportBtn?.addEventListener('click', openExportModal);
     els.exportModalClose?.addEventListener('click', closeExportModal);
     els.doExportBtn?.addEventListener('click', doExport);
@@ -106,7 +91,6 @@
       if (e.target === els.exportModal) closeExportModal();
     });
 
-    // Clear modal
     els.clearBtn?.addEventListener('click', openClearModal);
     els.clearModalClose?.addEventListener('click', closeClearModal);
     els.clearCancelBtn?.addEventListener('click', closeClearModal);
@@ -115,7 +99,6 @@
       if (e.target === document.getElementById('clearModal')) closeClearModal();
     });
 
-    // Welcome chips
     els.welcomeChips?.forEach(chip => {
       chip.addEventListener('click', () => {
         const prompt = chip.dataset.prompt;
@@ -127,7 +110,6 @@
       });
     });
 
-    // Mobiele overlay
     const overlay = createSidebarOverlay();
     overlay.addEventListener('click', toggleSidebar);
   }
@@ -146,8 +128,7 @@
 
   function toggleSidebar() {
     const isMobile = window.innerWidth <= 720;
-    const overlay = document.getElementById('sidebarOverlay');
-
+    const overlay  = document.getElementById('sidebarOverlay');
     if (isMobile) {
       els.sidebar.classList.toggle('visible');
       overlay?.classList.toggle('visible', els.sidebar.classList.contains('visible'));
@@ -157,14 +138,13 @@
     }
   }
 
-  // ─── Model selectie ───────────────────────────────────────────
+  // ─── Model & formaat ──────────────────────────────────────────
   function selectModel(modelId) {
     state.model = modelId;
     const model = MODELS.find(m => m.id === modelId);
     if (model) UI.setCurrentModel(model);
   }
 
-  // ─── Formaat selectie ─────────────────────────────────────────
   function selectFormat(formatId) {
     state.format = formatId;
     const format = OUTPUT_FORMATS.find(f => f.id === formatId);
@@ -177,33 +157,23 @@
     addFiles(files);
     e.target.value = '';
   }
-
-  function handleDragOver(e) {
-    e.preventDefault();
-    els.uploadZone?.classList.add('drag-over');
-  }
-
-  function handleDragLeave() {
-    els.uploadZone?.classList.remove('drag-over');
-  }
-
+  function handleDragOver(e)  { e.preventDefault(); els.uploadZone?.classList.add('drag-over'); }
+  function handleDragLeave()  { els.uploadZone?.classList.remove('drag-over'); }
   function handleDrop(e) {
     e.preventDefault();
     els.uploadZone?.classList.remove('drag-over');
-    const files = Array.from(e.dataTransfer.files || []);
-    addFiles(files);
+    addFiles(Array.from(e.dataTransfer.files || []));
   }
 
   function addFiles(files) {
-    const validFiles = files.filter(f => {
+    const valid = files.filter(f => {
       if (f.size > CONFIG.MAX_FILE_SIZE) {
-        UI.showError(`Bestand "${f.name}" is te groot (max ${UI.formatBytes(CONFIG.MAX_FILE_SIZE)}).`);
+        UI.showError(`File "${f.name}" is too large (max ${UI.formatBytes(CONFIG.MAX_FILE_SIZE)}).`);
         return false;
       }
       return true;
     });
-
-    state.uploads = [...state.uploads, ...validFiles];
+    state.uploads = [...state.uploads, ...valid];
     UI.renderFileList(state.uploads, removeFile);
     UI.renderAttachmentChips(state.uploads, removeFile);
   }
@@ -226,40 +196,35 @@
     if (els.userInput) els.userInput.value = '';
     autoResizeTextarea();
 
-    const format = OUTPUT_FORMATS.find(f => f.id === state.format);
+    const format    = OUTPUT_FORMATS.find(f => f.id === state.format);
     const timestamp = new Date().toISOString();
 
-    // Bouw content array op
+    // Uploads inlezen
     let userContent = [];
-
-    // Voeg uploads toe
     if (state.uploads.length > 0) {
       try {
         const fileContents = await Promise.all(state.uploads.map(f => API.readFileForAPI(f)));
         userContent.push(...fileContents);
       } catch (err) {
-        UI.showError(`Fout bij laden van bestanden: ${err.message}`);
+        UI.showError(`Error loading files: ${err.message}`);
         state.isLoading = false;
         if (els.sendBtn) els.sendBtn.disabled = false;
         return;
       }
     }
 
-    // Voeg tekst toe
-    if (text) {
-      userContent.push({ type: 'text', text });
-    }
+    if (text) userContent.push({ type: 'text', text });
 
-    // Render gebruikersbericht
-    const fileNames = state.uploads.map(f => f.name).join(', ');
+    // Toon bestandsnaam(en) in het gebruikersbericht
+    const fileNames  = state.uploads.map(f => f.name).join(', ');
     const displayText = fileNames
-       ? (text ? `📎 ${fileNames}\n\n${text}` : `📎 ${fileNames}`)
-       : text;
+      ? (text ? '📎 ' + fileNames + '\n\n' + text : '📎 ' + fileNames)
+      : text;
+
     UI.renderMessage('user', displayText, null, timestamp);
 
-    // Voeg toe aan API-geschiedenis
     const userMsg = {
-      role: 'user',
+      role:    'user',
       content: userContent.length === 1 && userContent[0].type === 'text'
         ? userContent[0].text
         : userContent,
@@ -267,8 +232,7 @@
     };
     state.messages.push(userMsg);
 
-    // Wis uploads na verzenden
-    const uploadedFiles = [...state.uploads];
+    // Wis uploads
     state.uploads = [];
     UI.renderFileList([], removeFile);
     UI.renderAttachmentChips([], removeFile);
@@ -276,39 +240,39 @@
     // Toon typing indicator
     UI.showTyping();
 
-    // Bouw systeem prompt op
+    // Systeem prompt
     let systemPrompt = CONFIG.SYSTEM_PROMPT;
     if (format && format.id !== 'none' && format.instruction) {
-      systemPrompt += `\n\n[UITVOERFORMAAT INSTRUCTIE]\n${format.instruction}`;
+      systemPrompt += '\n\n[OUTPUT FORMAT INSTRUCTION]\n' + format.instruction;
     }
 
-    // Bereid messages voor (zonder timestamps voor API)
-    const apiMessages = state.messages.map(m => ({
-      role: m.role,
-      content: m.content
-    }));
+    const apiMessages = state.messages.map(m => ({ role: m.role, content: m.content }));
+
+    // ── onProgress callback: wissel typing ↔ continuing indicator ──
+    function onProgress(status, partialText) {
+      if (status === 'continuing') {
+        UI.showContinuing(partialText);
+      } else {
+        UI.hideContinuing();
+      }
+    }
 
     try {
-      const response = await API.sendMessage(apiMessages, state.model, systemPrompt);
+      const response = await API.sendMessage(apiMessages, state.model, systemPrompt, onProgress);
 
       UI.hideTyping();
+      UI.hideContinuing();
 
       const aiTimestamp = new Date().toISOString();
       UI.renderMessage('assistant', response, format, aiTimestamp);
 
-      // Bewaar AI-antwoord
-      state.messages.push({
-        role: 'assistant',
-        content: response,
-        timestamp: aiTimestamp
-      });
-
+      state.messages.push({ role: 'assistant', content: response, timestamp: aiTimestamp });
       updateStats();
 
     } catch (err) {
       UI.hideTyping();
-      UI.showError(`API fout: ${err.message}`);
-      // Verwijder het laatste gebruikersbericht uit history bij fout
+      UI.hideContinuing();
+      UI.showError(`API error: ${err.message}`);
       state.messages.pop();
     }
 
@@ -320,7 +284,7 @@
   // ─── Export modal ─────────────────────────────────────────────
   function openExportModal() {
     if (state.messages.length === 0) {
-      UI.showError('Er zijn nog geen berichten om te exporteren.');
+      UI.showError('There are no messages to export yet.');
       return;
     }
     UI.renderExportFormats('docx');
@@ -332,39 +296,27 @@
   }
 
   async function doExport() {
-    const selected = document.getElementById('exportFormats')?.dataset.selected || 'docx';
-    const clearAfter = document.getElementById('clearAfterExport')?.checked;
-
+    const selected    = document.getElementById('exportFormats')?.dataset.selected || 'docx';
+    const clearAfter  = document.getElementById('clearAfterExport')?.checked;
     closeExportModal();
-
     await Exporter.exportChat(state.messages, selected);
-
-    if (clearAfter) {
-      performClear();
-    }
+    if (clearAfter) performClear();
   }
 
   // ─── Clear modal ──────────────────────────────────────────────
   function openClearModal() {
-    if (document.getElementById('clearModal')) {
-      document.getElementById('clearModal').style.display = 'flex';
-    }
+    document.getElementById('clearModal').style.display = 'flex';
   }
-
   function closeClearModal() {
-    if (document.getElementById('clearModal')) {
-      document.getElementById('clearModal').style.display = 'none';
-    }
+    document.getElementById('clearModal').style.display = 'none';
   }
-
   function clearChat() {
     closeClearModal();
     performClear();
   }
-
   function performClear() {
     state.messages = [];
-    state.uploads = [];
+    state.uploads  = [];
     UI.clearMessages();
     UI.renderFileList([], removeFile);
     UI.renderAttachmentChips([], removeFile);
@@ -374,7 +326,7 @@
   // ─── Statistieken ─────────────────────────────────────────────
   function updateStats() {
     const msgCount = state.messages.length;
-    const tokens = estimateTokens(state.messages);
+    const tokens   = estimateTokens(state.messages);
     UI.updateStats(msgCount, tokens);
   }
 
@@ -386,7 +338,7 @@
       } else if (Array.isArray(m.content)) {
         m.content.forEach(c => {
           if (c.type === 'text') chars += c.text.length;
-          else if (c.type === 'image' || c.type === 'document') chars += 1000;
+          else chars += 1000; // afbeelding/document schatting
         });
       }
     });

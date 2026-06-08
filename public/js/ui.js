@@ -393,6 +393,58 @@ const UI = (() => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+
+  // ─── Continuation indicator ───────────────────────────────────
+  /**
+   * Toont een "Continuing response…" indicator terwijl er
+   * een vervolg-API-call loopt na max_tokens afkapping.
+   * Vervangt de normale typing indicator.
+   */
+  function showContinuing(partialText) {
+    // Verberg gewone typing indicator als die er nog is
+    const typing = document.getElementById('typingIndicator');
+    if (typing) typing.remove();
+
+    // Maak/update de continuing indicator
+    let el = document.getElementById('continuingIndicator');
+    if (!el) {
+      const messagesEl = document.getElementById('messages');
+      if (!messagesEl) return;
+      el = document.createElement('div');
+      el.id = 'continuingIndicator';
+      el.className = 'continuing-indicator';
+      el.innerHTML =
+        '<div class="continuing-inner">' +
+          '<div class="continuing-dots">' +
+            '<div class="typing-dot"></div>' +
+            '<div class="typing-dot"></div>' +
+            '<div class="typing-dot"></div>' +
+          '</div>' +
+          '<span class="continuing-label">Continuing response…</span>' +
+          '<span class="continuing-count" id="continuingCount"></span>' +
+        '</div>';
+      messagesEl.appendChild(el);
+    }
+
+    // Tel het aantal vervolgvragen op basis van hoeveel keer we hier komen
+    const countEl = document.getElementById('continuingCount');
+    if (countEl) {
+      const current = parseInt(countEl.dataset.count || '0') + 1;
+      countEl.dataset.count = current;
+      countEl.textContent = 'Part ' + current;
+    }
+
+    scrollToBottom();
+  }
+
+  function hideContinuing() {
+    const el = document.getElementById('continuingIndicator');
+    if (el) el.remove();
+    // Reset teller
+    const countEl = document.getElementById('continuingCount');
+    if (countEl) countEl.dataset.count = '0';
+  }
+
   return {
     renderMarkdown,
     renderModels,
@@ -410,7 +462,9 @@ const UI = (() => {
     updateStats,
     renderExportFormats,
     escapeHtml,
-    formatBytes
+    formatBytes,
+    showContinuing,
+    hideContinuing
   };
 
 })();
