@@ -1045,6 +1045,48 @@ body {
 .msg-dl-opt:last-child { border-bottom: none; }
 .msg-dl-opt:hover { background: var(--bg-5); color: var(--text-1); }
 
+
+/* ========= CONTINUATION INDICATOR ========= */
+.continuing-indicator {
+  padding: 10px 14px 10px 0;
+  animation: fadeSlideIn 0.2s ease;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.continuing-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
+
+.continuing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.continuing-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+}
+
+.continuing-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  background: var(--bg-4);
+  padding: 1px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
 /* ========= ANIMATIONS ========= */
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -1101,4 +1143,3 @@ body {
 
 /* ========= SELECTION ========= */
 ::selection { background: var(--accent-glow); color: var(--text-1); }
-
